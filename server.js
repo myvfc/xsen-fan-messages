@@ -5,15 +5,15 @@ const app = express();
 
 /* ==============================
    BODY PARSERS
-   (URL-ENCODED = NO PREFLIGHT)
 ============================== */
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // harmless to keep
+app.use(express.json());
 
 /* ==============================
-   FAN MESSAGE ENDPOINT
+   FAN MESSAGE HANDLER
+   (shared logic)
 ============================== */
-app.post("/fan-message", async (req, res) => {
+async function handleFanMessage(req, res) {
   const { name, message, source } = req.body;
 
   if (!message || message.trim().length < 2) {
@@ -48,7 +48,13 @@ ${message}
     console.error("Discord webhook error:", err);
     return res.status(500).send("failed");
   }
-});
+}
+
+/* ==============================
+   ROUTES (IMPORTANT)
+============================== */
+app.post("/fan-message", handleFanMessage);
+app.post("/", handleFanMessage); // ← fallback for Railway mount quirks
 
 /* ==============================
    HEALTH CHECK
@@ -64,3 +70,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`XSEN Fan Messages running on port ${PORT}`);
 });
+
