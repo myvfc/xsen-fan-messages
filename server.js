@@ -1,6 +1,11 @@
 import express from "express";
 import fetch from "node-fetch";
 
+/* ==============================
+   STEP 1 — BOOT PROOF
+============================== */
+console.log("🚀 XSEN FAN MESSAGE SERVICE BOOTED — VERSION 2026-01-15-A");
+
 const app = express();
 
 /* ==============================
@@ -51,10 +56,22 @@ ${message}
 }
 
 /* ==============================
-   ROUTES (IMPORTANT)
+   ROUTES
 ============================== */
 app.post("/fan-message", handleFanMessage);
-app.post("/", handleFanMessage); // ← fallback for Railway mount quirks
+app.post("/", handleFanMessage); // Railway fallback safety
+
+/* ==============================
+   STEP 1 — PROOF ROUTE
+============================== */
+app.get("/__whoami", (req, res) => {
+  res.json({
+    service: "xsen-fan-messages",
+    version: "2026-01-15-A",
+    routes: ["/fan-message", "/"],
+    status: "running"
+  });
+});
 
 /* ==============================
    HEALTH CHECK
@@ -70,4 +87,3 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`XSEN Fan Messages running on port ${PORT}`);
 });
-
