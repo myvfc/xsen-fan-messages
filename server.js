@@ -1,12 +1,17 @@
 import express from "express";
 import fetch from "node-fetch";
 
-/* ==============================
-   STEP 1 — BOOT PROOF
-============================== */
-console.log("🚀 XSEN FAN MESSAGE SERVICE BOOTED — VERSION 2026-01-15-A");
+console.log("🚀 XSEN FAN MESSAGE SERVICE BOOTED — VERSION 2026-01-15-B");
 
 const app = express();
+
+/* ==============================
+   SIMPLE CORS (NO PREFLIGHT)
+============================== */
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
 
 /* ==============================
    BODY PARSERS
@@ -16,7 +21,6 @@ app.use(express.json());
 
 /* ==============================
    FAN MESSAGE HANDLER
-   (shared logic)
 ============================== */
 async function handleFanMessage(req, res) {
   const { name, message, source } = req.body;
@@ -59,16 +63,15 @@ ${message}
    ROUTES
 ============================== */
 app.post("/fan-message", handleFanMessage);
-app.post("/", handleFanMessage); // Railway fallback safety
+app.post("/", handleFanMessage); // fallback safety
 
 /* ==============================
-   STEP 1 — PROOF ROUTE
+   PROOF ROUTE
 ============================== */
 app.get("/__whoami", (req, res) => {
   res.json({
     service: "xsen-fan-messages",
-    version: "2026-01-15-A",
-    routes: ["/fan-message", "/"],
+    version: "2026-01-15-B",
     status: "running"
   });
 });
