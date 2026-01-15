@@ -4,32 +4,11 @@ import fetch from "node-fetch";
 const app = express();
 
 /* ==============================
-   GLOBAL CORS + PRE-FLIGHT
+   BODY PARSERS
+   (URL-ENCODED = NO PREFLIGHT)
 ============================== */
-app.use((req, res, next) => {
-  // Allow any origin
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  // Allowed HTTP methods
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS"
-  );
-  // Allowed request headers
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  // If this is a preflight request, end here
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
-
-// JSON parser
-app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // harmless to keep
 
 /* ==============================
    FAN MESSAGE ENDPOINT
@@ -38,7 +17,7 @@ app.post("/fan-message", async (req, res) => {
   const { name, message, source } = req.body;
 
   if (!message || message.trim().length < 2) {
-    return res.status(400).json({ error: "Message required" });
+    return res.status(400).send("Message required");
   }
 
   const timestamp = new Date().toLocaleString("en-US", {
@@ -63,10 +42,11 @@ ${message}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    return res.json({ success: true });
+
+    return res.status(200).send("ok");
   } catch (err) {
     console.error("Discord webhook error:", err);
-    return res.status(500).json({ error: "Failed to send message" });
+    return res.status(500).send("failed");
   }
 });
 
@@ -81,6 +61,6 @@ app.get("/", (req, res) => {
    START SERVER
 ============================== */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () =>
-  console.log(`XSEN Fan Messages running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`XSEN Fan Messages running on port ${PORT}`);
+});
