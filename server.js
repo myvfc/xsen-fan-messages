@@ -3,7 +3,21 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
-app.use(cors());
+
+/* ==============================
+   CORS (EXPLICIT FOR BROWSER FETCH)
+============================== */
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"]
+  })
+);
+
+// Handle preflight requests explicitly
+app.options("*", cors());
+
 app.use(express.json());
 
 /* ==============================
@@ -12,7 +26,7 @@ app.use(express.json());
 app.post("/fan-message", async (req, res) => {
   const { name, message, source } = req.body;
 
-  if (!message || message.length < 2) {
+  if (!message || message.trim().length < 2) {
     return res.status(400).json({ error: "Message required" });
   }
 
@@ -39,7 +53,7 @@ ${message}
       body: JSON.stringify(content)
     });
 
-    res.json({ success: true });
+    res.status(200).json({ success: true });
   } catch (err) {
     console.error("Discord webhook error:", err);
     res.status(500).json({ error: "Failed to send message" });
@@ -57,6 +71,6 @@ app.get("/", (req, res) => {
    START SERVER
 ============================== */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () =>
-  console.log(`XSEN Fan Messages running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`XSEN Fan Messages running on port ${PORT}`);
+});
