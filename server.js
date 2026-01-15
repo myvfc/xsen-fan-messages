@@ -4,20 +4,23 @@ import fetch from "node-fetch";
 const app = express();
 
 /* ==============================
-   HARD CORS HANDLER (RAILWAY-SAFE)
+   GLOBAL CORS + PRE-FLIGHT
 ============================== */
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
+  // Allow any origin
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  // Allowed HTTP methods
+  res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, OPTIONS"
   );
-  res.header(
+  // Allowed request headers
+  res.setHeader(
     "Access-Control-Allow-Headers",
     "Content-Type"
   );
 
-  // SHORT-CIRCUIT ALL PREFLIGHT REQUESTS
+  // If this is a preflight request, end here
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
@@ -25,6 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// JSON parser
 app.use(express.json());
 
 /* ==============================
@@ -59,8 +63,7 @@ ${message}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-
-    return res.status(200).json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
     console.error("Discord webhook error:", err);
     return res.status(500).json({ error: "Failed to send message" });
@@ -78,6 +81,6 @@ app.get("/", (req, res) => {
    START SERVER
 ============================== */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`XSEN Fan Messages running on port ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`XSEN Fan Messages running on port ${PORT}`)
+);
