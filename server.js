@@ -5,20 +5,23 @@ import fetch from "node-fetch";
 const app = express();
 
 /* ==============================
-   CORS (EXPLICIT FOR BROWSER FETCH)
+   CORS — EXPLICIT + PRECISE
 ============================== */
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"]
-  })
-);
+const corsOptions = {
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+};
 
-// Handle preflight requests explicitly
-app.options("*", cors());
-
+app.use(cors(corsOptions));
 app.use(express.json());
+
+/* ==============================
+   PRE-FLIGHT (THIS WAS MISSING)
+============================== */
+app.options("/fan-message", cors(corsOptions), (req, res) => {
+  return res.sendStatus(204);
+});
 
 /* ==============================
    FAN MESSAGE ENDPOINT
@@ -34,7 +37,7 @@ app.post("/fan-message", async (req, res) => {
     timeZone: "America/Denver"
   });
 
-  const content = {
+  const payload = {
     content:
 `📣 **FAN MESSAGE — BOOMER BOT**
 
@@ -50,13 +53,13 @@ ${message}
     await fetch(process.env.DISCORD_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(content)
+      body: JSON.stringify(payload)
     });
 
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
   } catch (err) {
     console.error("Discord webhook error:", err);
-    res.status(500).json({ error: "Failed to send message" });
+    return res.status(500).json({ error: "Failed to send message" });
   }
 });
 
