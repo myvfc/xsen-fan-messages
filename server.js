@@ -1,27 +1,31 @@
 import express from "express";
-import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
 
 /* ==============================
-   CORS — EXPLICIT + PRECISE
+   HARD CORS HANDLER (RAILWAY-SAFE)
 ============================== */
-const corsOptions = {
-  origin: "*",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"]
-};
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS"
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type"
+  );
 
-app.use(cors(corsOptions));
-app.use(express.json());
+  // SHORT-CIRCUIT ALL PREFLIGHT REQUESTS
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
 
-/* ==============================
-   PRE-FLIGHT (THIS WAS MISSING)
-============================== */
-app.options("/fan-message", cors(corsOptions), (req, res) => {
-  return res.sendStatus(204);
+  next();
 });
+
+app.use(express.json());
 
 /* ==============================
    FAN MESSAGE ENDPOINT
