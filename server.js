@@ -7,7 +7,21 @@ const app = express();
    CONFIG
 ============================== */
 const PORT = process.env.PORT || 8080;
-const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+
+// Fan → Broadcaster messages
+const FAN_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+
+// Broadcaster → System LIVE control
+const LIVE_WEBHOOK_URL = process.env.DISCORD_LIVE_WEBHOOK_URL;
+
+/* ==============================
+   LIVE STATE (in-memory)
+============================== */
+let LIVE_STATE = {
+  isLive: false,
+  updatedAt: null,
+  source: "manual"
+};
 
 /* ==============================
    GLOBAL CORS + BODY PARSERS
@@ -37,9 +51,9 @@ async function handleFanMessage(req, res) {
     return res.status(400).json({ error: "Message required" });
   }
 
-  if (!DISCORD_WEBHOOK_URL) {
+  if (!FAN_WEBHOOK_URL) {
     console.error("DISCORD_WEBHOOK_URL not set");
-    return res.status(500).json({ error: "Webhook not configured" });
+    return res.status(500).json({ error: "Fan webhook not configured" });
   }
 
   const timestamp = new Date().toLocaleString("en-US", {
@@ -59,7 +73,7 @@ ${message}
   };
 
   try {
-    await fetch(DISCORD_WEBHOOK_URL, {
+    await fetch(FAN_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -67,17 +81,54 @@ ${message}
 
     return res.json({ success: true });
   } catch (err) {
-    console.error("Discord webhook error:", err);
-    return res.status(500).json({ error: "Failed to send message" });
+    console.error("Fan webhook error:", err);
+    return res.status(500).json({ error: "Failed to send fan message" });
   }
 }
+
+/* ==============================
+   LIVE CONTROL (DISCORD → SYSTEM)
+============================== */
+app.post("/discord-live", async (req, res) => {
+  const content = req.body?.content?.toLowerCase?.();
+
+  if (!content) {
+    return res.sendStatus(200);
+  }
+
+  if (content === "/live on") {
+    LIVE_STATE.isLive = true;
+    LIVE_STATE.updatedAt = new Date().toISOString();
+    LIVE_STATE.source = "discord";
+
+    console.log("LIVE STATE: ON");
+  }
+
+  if (content === "/live off") {
+    LIVE_STATE.isLive = false;
+    LIVE_STATE.updatedAt = new Date().toISOString();
+    LIVE_STATE.source = "discord";
+
+    console.log("LIVE STATE: OFF");
+  }
+
+  // Acknowledge Discord silently
+  return res.sendStatus(200);
+});
+
+/* ==============================
+   LIVE STATUS (APP READ-ONLY)
+============================== */
+app.get("/live-status", (req, res) => {
+  res.json(LIVE_STATE);
+});
 
 /* ==============================
    ROUTES
 ============================== */
 app.post("/fan-message", handleFanMessage);
 
-// Railway fallback (important)
+// Railway fallback
 app.post("/", handleFanMessage);
 
 /* ==============================
@@ -86,7 +137,9 @@ app.post("/", handleFanMessage);
 app.get("/", (req, res) => {
   res.json({
     service: "xsen-fan-messages",
-    status: "running"
+    version: "2026-01-15-C",
+    status: "running",
+    live: LIVE_STATE.isLive
   });
 });
 
@@ -94,6 +147,6 @@ app.get("/", (req, res) => {
    START SERVER
 ============================== */
 app.listen(PORT, () => {
-  console.log(`XSEN Fan Messages running on port ${PORT}`);
+  console.log(`XSEN Fan + Live Control running on port ${PORT}`);
 });
 
