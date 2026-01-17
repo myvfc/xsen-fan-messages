@@ -20,6 +20,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store"); // 🔴 CRITICAL FOR LIVE STATUS
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
@@ -69,27 +70,39 @@ ${message}
     });
     return res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("Fan message error:", err);
     return res.status(500).json({ error: "Failed to send message" });
   }
 });
 
 /* ==============================
-   LIVE CONTROL — OPTION A
+   LIVE CONTROL — OPTION A (URL)
 ============================== */
 app.get("/live/on", (req, res) => {
   LIVE_STATE.isLive = true;
   LIVE_STATE.updatedAt = new Date().toISOString();
+  LIVE_STATE.source = "control-url";
+
+  console.log("LIVE STATE SET: ON");
+
   return res.json({ ok: true, ...LIVE_STATE });
 });
 
 app.get("/live/off", (req, res) => {
   LIVE_STATE.isLive = false;
   LIVE_STATE.updatedAt = new Date().toISOString();
+  LIVE_STATE.source = "control-url";
+
+  console.log("LIVE STATE SET: OFF");
+
   return res.json({ ok: true, ...LIVE_STATE });
 });
 
+/* ==============================
+   LIVE STATUS (FRONTEND POLLING)
+============================== */
 app.get("/live-status", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   return res.json(LIVE_STATE);
 });
 
@@ -100,6 +113,7 @@ app.get("/__whoami", (req, res) => {
   res.json({
     service: "xsen-fan-messages",
     status: "running",
+    version: "2026-01-16",
     routes: ["/fan-message", "/live/on", "/live/off", "/live-status"],
     live: LIVE_STATE
   });
