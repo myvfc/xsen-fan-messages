@@ -6,12 +6,12 @@ import fetch from "node-fetch";
 ============================== */
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
-// MUST match the channel name exactly
+// Channel name where commands are allowed
 const LIVE_CONTROL_CHANNEL = "live-control";
 
-// Internal endpoint (never shown to broadcasters)
-const LIVE_CONTROL_ENDPOINT =
-  "https://xsen-fan-messages-production.up.railway.app/internal/live";
+// Public server endpoints (safe – not visible to users)
+const API_BASE =
+  "https://xsen-fan-messages-production.up.railway.app";
 
 /* ==============================
    SAFETY CHECK
@@ -49,33 +49,39 @@ client.on("messageCreate", async (message) => {
   const content = message.content.trim().toLowerCase();
 
   if (content === "/live on") {
-    await setLiveState(true, message);
+    await setLiveState("on", message);
+    return;
   }
 
   if (content === "/live off") {
-    await setLiveState(false, message);
+    await setLiveState("off", message);
+    return;
   }
 });
 
 /* ==============================
    LIVE STATE UPDATE
 ============================== */
-async function setLiveState(isLive, message) {
+async function setLiveState(mode, message) {
   try {
-    await fetch(LIVE_CONTROL_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        isLive,
-        source: "discord-bot"
-      })
-    });
+    const url = `${API_BASE}/live/${mode}`;
+    await fetch(url);
 
-    await message.react("✅");
-    console.log(`LIVE STATE SET: ${isLive ? "ON" : "OFF"}`);
+    console.log(`LIVE STATE SET: ${mode.toUpperCase()}`);
+
+    // React only if allowed (prevents crashes)
+    try {
+      await message.react(mode === "on" ? "🔴" : "⚪");
+    } catch (e) {
+      console.warn("Reaction failed (missing perms)");
+    }
+
   } catch (err) {
     console.error("Failed to set live state:", err);
-    await message.react("❌");
+
+    try {
+      await message.react("❌");
+    } catch {}
   }
 }
 
